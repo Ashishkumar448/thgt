@@ -1,0 +1,37 @@
+name: Decodo 2-Page Scraper (Overnight Runner)
+
+on:
+  workflow_dispatch:
+    inputs:
+      delay_seconds:
+        description: 'Delay between keyword searches (seconds)'
+        required: false
+        default: '120'
+
+jobs:
+  run-scraper:
+    name: Scrape Decodo Keywords to MongoDB
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # Max runtime is 6 hours (your 135 keywords take ~3.3 hours)
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Execute Scraper Queue
+        run: node scripts/cli-scraper.js
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          SCRAPER_URL: ${{ secrets.SCRAPER_URL }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          DELAY_SECONDS: ${{ github.event.inputs.delay_seconds || secrets.DELAY_SECONDS || '120' }}
+          DECODO_COLLECTION: ${{ secrets.DECODO_COLLECTION || 'decodo_scrapes' }}
